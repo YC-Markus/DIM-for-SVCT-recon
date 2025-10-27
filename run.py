@@ -6,7 +6,6 @@ import logging
 import numpy as np
 import torch.nn as nn
 from tqdm import tqdm
-from lion_pytorch import Lion
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from monai.data import DataLoader
@@ -18,20 +17,20 @@ from generative.networks.nets import DiffusionModelUNet
 
 from dataset import *
 from utils import *
-#####
-os.environ['CUDA_VISIBLE_DEVICES'] = "9"
+##### 
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 torch.backends.cudnn.benchmark = True
 
 
 batch_size, batch_size_val = 32, 16
 num_workers = 32
-learning_rate = 5e-5
+learning_rate = 2e-4
 ema_start = 5
 ema_rate = 0.9995
 
 sparsity = 32
 resol_levels = [32]  #####
-MINI_BATCH_SIZE = {'32': 4, '64': 32, '128': 32, '256': 4}   #####
+MINI_BATCH_SIZE = {'32': 32, '64': 32, '128': 32, '256': 16}   #####
 VAL_LOSSES = {'32': [], '64': [], '128': [], '256': []}
 
 
@@ -237,7 +236,7 @@ def test_ct(test_loader, test_models, save_flag=False, epoch='test'):
 
 
         end_time = time.time()
-        print(f"执行时间：{end_time - start}秒")
+        print(f"inference time: {end_time - start} s")
         for resolution in resol_levels:
             ssim_mean, ssim_std = np.mean(EVAL[f'SSIM_{resolution}']), np.std(EVAL[f'SSIM_{resolution}'])
             psnr_mean, psnr_std = np.mean(EVAL[f'PSNR_{resolution}']), np.std(EVAL[f'PSNR_{resolution}'])
@@ -263,7 +262,7 @@ def test_ct(test_loader, test_models, save_flag=False, epoch='test'):
 def train_ct(train_loader, train_model):
     epoch_start = 0
     epoch_end = 90
-    optimizer = Lion(params=train_model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.AdamW(params=train_model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[epoch_end-15,epoch_end-5], gamma=0.25)
 
     for epoch in range(epoch_start, epoch_end):
@@ -312,7 +311,7 @@ def train_ct(train_loader, train_model):
 
 
 #####
-log_path = f'/workspace/PROJECT/SVCT/WLS_{sparsity}/test_log/{resol_levels[-1]}-split-lion-small.log'
+log_path = f'/workspace/PROJECT/SVCT/WLS_{sparsity}/test_log/{resol_levels[-1]}-split.log'
 model_save_path = f'/workspace/MODEL/SVCT/{sparsity}/WLS_split/{resol_levels[-1]}/'
 
 logging.basicConfig(filename=log_path, filemode='a', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
